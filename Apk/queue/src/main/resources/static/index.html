@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <base href="/">
+  <title>BCI SmartFila — Painel do Atendente</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Variáveis ─────────────────────────────────────── */
+    :root {
+      --vermelho:     #E8001D;
+      --vermelho-esc: #B0001A;
+      --vermelho-clr: #FFF0F0;
+      --preto:        #0A0A0A;
+      --cinza-esc:    #1A1A1A;
+      --cinza-med:    #2C2C2C;
+      --cinza-brd:    #3A3A3A;
+      --cinza-txt:    #888888;
+      --branco:       #FFFFFF;
+      --verde:        #00C853;
+      --laranja:      #FF9100;
+      --azul:         #2979FF;
+      --fonte-mono:   'IBM Plex Mono', monospace;
+      --fonte-sans:   'IBM Plex Sans', sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--fonte-sans);
+      background: var(--preto);
+      color: var(--branco);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       ECRÃ DE LOGIN
+    ══════════════════════════════════════════════════════ */
+    #tela-login {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--preto);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #tela-login::before {
+      content: '';
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(232,0,29,0.15) 0%, transparent 70%);
+      top: -100px; right: -100px;
+      pointer-events: none;
+    }
+
+    #tela-login::after {
+      content: '';
+      position: absolute;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(232,0,29,0.08) 0%, transparent 70%);
+      bottom: -50px; left: -50px;
+      pointer-events: none;
+    }
+
+    .login-card {
+      background: var(--cinza-esc);
+      border: 1px solid var(--cinza-brd);
+      border-radius: 4px;
+      padding: 48px;
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .login-logo-bci {
+      background: var(--vermelho);
+      color: white;
+      font-family: var(--fonte-mono);
+      font-weight: 600;
+      font-size: 18px;
+      padding: 8px 14px;
+      letter-spacing: 2px;
+    }
+
+    .login-logo-texto {
+      font-size: 13px;
+      color: var(--cinza-txt);
+      line-height: 1.4;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .login-titulo {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--branco);
+    }
+
+    .login-subtitulo {
+      font-size: 13px;
+      color: var(--cinza-txt);
+      margin-bottom: 36px;
+    }
+
+    .campo-grupo {
+      margin-bottom: 20px;
+    }
+
+    .campo-grupo label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--cinza-txt);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .campo-grupo input,
+    .campo-grupo select {
+      width: 100%;
+      background: var(--cinza-med);
+      border: 1px solid var(--cinza-brd);
+      border-radius: 2px;
+      color: var(--branco);
+      font-family: var(--fonte-sans);
+      font-size: 15px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .campo-grupo input:focus,
+    .campo-grupo select:focus {
+      border-color: var(--vermelho);
+    }
+
+    .campo-grupo select option {
+      background: var(--cinza-med);
+    }
+
+    .btn-entrar {
+      width: 100%;
+      background: var(--vermelho);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-family: var(--fonte-sans);
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn-entrar:hover { background: var(--vermelho-esc); }
+
+    /* ══════════════════════════════════════════════════════
+       PAINEL PRINCIPAL
+    ══════════════════════════════════════════════════════ */
+    #tela-painel { display: none; min-height: 100vh; flex-direction: column; }
+
+    /* ── Topo ─────────────────────────────────────────── */
+    .topo {
+      background: var(--cinza-esc);
+      border-bottom: 1px solid var(--cinza-brd);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .topo-esq { display: flex; align-items: center; gap: 16px; }
+
+    .topo-bci {
+      background: var(--vermelho);
+      color: white;
+      font-family: var(--fonte-mono);
+      font-weight: 600;
+      font-size: 13px;
+      padding: 4px 10px;
+      letter-spacing: 2px;
+    }
+
+    .topo-nome {
+      font-size: 13px;
+      color: var(--cinza-txt);
+    }
+
+    .topo-dir { display: flex; align-items: center; gap: 20px; }
+
+    .topo-atendente {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--cinza-txt);
+    }
+
+    .topo-atendente span {
+      color: var(--branco);
+      font-weight: 500;
+    }
+
+    .topo-servico {
+      background: var(--cinza-med);
+      border: 1px solid var(--cinza-brd);
+      border-radius: 2px;
+      padding: 6px 12px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .topo-servico select {
+      background: transparent;
+      border: none;
+      color: var(--branco);
+      font-family: var(--fonte-sans);
+      font-size: 12px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .topo-servico select option { background: var(--cinza-med); }
+
+    .btn-sair {
+      background: transparent;
+      border: 1px solid var(--cinza-brd);
+      color: var(--cinza-txt);
+      padding: 6px 14px;
+      font-family: var(--fonte-sans);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-sair:hover { border-color: var(--vermelho); color: var(--vermelho); }
+
+    /* ── Conteúdo principal ───────────────────────────── */
+    .conteudo {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      grid-template-rows: auto 1fr;
+      gap: 0;
+      flex: 1;
+      padding: 24px;
+      gap: 20px;
+    }
+
+    /* ── Card base ────────────────────────────────────── */
+    .card {
+      background: var(--cinza-esc);
+      border: 1px solid var(--cinza-brd);
+      border-radius: 2px;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--cinza-brd);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-titulo {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--cinza-txt);
+      font-weight: 500;
+    }
+
+    .card-body { padding: 20px; }
+
+    /* ── Senha em destaque ────────────────────────────── */
+    .senha-destaque {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .senha-numero-wrap {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      padding: 8px 0;
+    }
+
+    .senha-numero {
+      font-family: var(--fonte-mono);
+      font-size: 96px;
+      font-weight: 600;
+      color: var(--vermelho);
+      line-height: 1;
+      letter-spacing: -4px;
+    }
+
+    .senha-numero.vazia {
+      color: var(--cinza-brd);
+      font-size: 72px;
+    }
+
+    .senha-info { flex: 1; }
+
+    .senha-servico {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--cinza-txt);
+      margin-bottom: 4px;
+    }
+
+    .senha-estado {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 2px;
+      margin-bottom: 12px;
+    }
+
+    .estado-atendendo {
+      background: rgba(0,200,83,0.15);
+      color: var(--verde);
+      border: 1px solid rgba(0,200,83,0.3);
+    }
+
+    .estado-vazio {
+      background: rgba(136,136,136,0.1);
+      color: var(--cinza-txt);
+      border: 1px solid var(--cinza-brd);
+    }
+
+    .senha-balcao {
+      font-size: 13px;
+      color: var(--cinza-txt);
+    }
+
+    .senha-balcao strong { color: var(--branco); }
+
+    /* ── Controlos ────────────────────────────────────── */
+    .controlos {
+      grid-column: 2;
+      grid-row: 1 / 3;
+    }
+
+    .btn-controlo {
+      width: 100%;
+      padding: 14px;
+      font-family: var(--fonte-sans);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      border: none;
+      margin-bottom: 10px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-chamar {
+      background: var(--vermelho);
+      color: white;
+    }
+
+    .btn-chamar:hover:not(:disabled) { background: var(--vermelho-esc); }
+
+    .btn-concluir {
+      background: transparent;
+      color: var(--verde);
+      border: 1px solid var(--verde);
+    }
+
+    .btn-concluir:hover:not(:disabled) {
+      background: rgba(0,200,83,0.1);
+    }
+
+    .btn-actualizar {
+      background: transparent;
+      color: var(--cinza-txt);
+      border: 1px solid var(--cinza-brd);
+    }
+
+    .btn-actualizar:hover { border-color: var(--branco); color: var(--branco); }
+
+    .btn-controlo:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* Métricas rápidas */
+    .metricas {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .metrica {
+      background: var(--cinza-med);
+      border: 1px solid var(--cinza-brd);
+      padding: 14px;
+      text-align: center;
+    }
+
+    .metrica-valor {
+      font-family: var(--fonte-mono);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--branco);
+      line-height: 1;
+    }
+
+    .metrica-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--cinza-txt);
+      margin-top: 4px;
+    }
+
+    /* ── Fila de espera ───────────────────────────────── */
+    .fila-espera {
+      grid-column: 1;
+      grid-row: 2;
+    }
+
+    .badge {
+      background: var(--vermelho);
+      color: white;
+      font-family: var(--fonte-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 2px;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .badge.zero { background: var(--cinza-med); color: var(--cinza-txt); }
+
+    /* Tabela */
+    .tabela-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--cinza-txt);
+      font-weight: 500;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--cinza-brd);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(58,58,58,0.5);
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+    tbody tr.proxima { background: rgba(232,0,29,0.05); }
+
+    tbody td {
+      padding: 12px 12px;
+      color: var(--branco);
+    }
+
+    .td-numero {
+      font-family: var(--fonte-mono);
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--vermelho);
+    }
+
+    .td-proxima .td-numero { color: var(--vermelho); }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 2px;
+    }
+
+    .chip-espera {
+      background: rgba(255,145,0,0.15);
+      color: var(--laranja);
+      border: 1px solid rgba(255,145,0,0.3);
+    }
+
+    .chip-proxima {
+      background: rgba(232,0,29,0.15);
+      color: var(--vermelho);
+      border: 1px solid rgba(232,0,29,0.3);
+    }
+
+    .chip-atendendo {
+      background: rgba(0,200,83,0.15);
+      color: var(--verde);
+      border: 1px solid rgba(0,200,83,0.3);
+    }
+
+    .chip-concluido {
+      background: rgba(136,136,136,0.15);
+      color: var(--cinza-txt);
+      border: 1px solid var(--cinza-brd);
+    }
+
+    .td-hora {
+      font-family: var(--fonte-mono);
+      font-size: 12px;
+      color: var(--cinza-txt);
+    }
+
+    /* Fila vazia */
+    .fila-vazia {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--cinza-txt);
+    }
+
+    .fila-vazia-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      opacity: 0.3;
+    }
+
+    .fila-vazia p { font-size: 13px; }
+
+    /* ── Actualização automática ──────────────────────── */
+    .auto-update {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--cinza-txt);
+    }
+
+    .dot-pulse {
+      width: 6px; height: 6px;
+      background: var(--verde);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ── Toast ────────────────────────────────────────── */
+    .toast-wrap {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--cinza-esc);
+      border-left: 3px solid var(--verde);
+      padding: 12px 16px;
+      font-size: 13px;
+      min-width: 240px;
+      animation: slideIn 0.3s ease;
+      border-radius: 2px;
+    }
+
+    .toast.erro { border-left-color: var(--vermelho); }
+    .toast.aviso { border-left-color: var(--laranja); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to   { transform: translateX(0);   opacity: 1; }
+    }
+
+    /* ── Spinner ──────────────────────────────────────── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn-nav-link {
+      font-size: 11px; color: var(--cinza-txt); text-decoration: none;
+      text-transform: uppercase; letter-spacing: 1px;
+      border: 1px solid var(--cinza-brd); padding: 6px 12px;
+      transition: all .2s;
+    }
+    .btn-nav-link:hover { color: var(--azul); border-color: var(--azul); }
+
+    /* ── Separador de secção ──────────────────────────── */
+    .sep {
+      height: 1px;
+      background: var(--cinza-brd);
+      margin: 16px 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     ECRÃ DE LOGIN
+══════════════════════════════════════════════════════ -->
+<div id="tela-login">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-bci">BCI</div>
+      <div class="login-logo-texto">SmartFila<br>Painel do Atendente</div>
+    </div>
+
+    <h1 class="login-titulo">Entrar no sistema</h1>
+    <p class="login-subtitulo">Identifique-se para aceder ao painel de atendimento.</p>
+
+    <div class="campo-grupo">
+      <label>Nome do Atendente</label>
+      <input type="text" id="input-nome" placeholder="Ex: Carlos Machava" autocomplete="off"/>
+    </div>
+
+    <div class="campo-grupo">
+      <label>Tipo de Posto</label>
+      <select id="input-tipo-posto" onchange="actualizarPostos()">
+        <option value="CAIXA">Caixa</option>
+        <option value="ATENDIMENTO">Atendimento</option>
+      </select>
+    </div>
+
+    <div class="campo-grupo">
+      <label>Posto</label>
+      <select id="input-balcao">
+        <option value="Caixa 1">Caixa 1</option>
+        <option value="Caixa 2">Caixa 2</option>
+        <option value="Caixa 3">Caixa 3</option>
+        <option value="Caixa 4">Caixa 4</option>
+      </select>
+    </div>
+
+    <div class="campo-grupo">
+      <label>Senha de Acesso</label>
+      <input type="password" id="input-senha" placeholder="••••••••" autocomplete="off"/>
+    </div>
+
+    <button class="btn-entrar" onclick="entrar()">Entrar</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     PAINEL PRINCIPAL
+══════════════════════════════════════════════════════ -->
+<div id="tela-painel">
+
+  <!-- Topo -->
+  <div class="topo">
+    <div class="topo-esq">
+      <div class="topo-bci">BCI</div>
+      <span class="topo-nome" id="topo-agencia">SmartFila</span>
+    </div>
+    <div class="topo-dir">
+      <div class="topo-servico">
+        <span style="color:var(--cinza-txt);font-size:11px;text-transform:uppercase;letter-spacing:1px;">Serviço:</span>
+        <select id="select-servico" onchange="mudarServico()">
+          <option value="CAIXA">Caixa</option>
+          <option value="ATENDIMENTO">Atendimento</option>
+        </select>
+      </div>
+      <div class="topo-atendente">
+        Atendente: <span id="topo-atendente">—</span>
+      </div>
+      <a href="http://localhost:8080/gestor.html" class="btn-nav-link">Painel Gestor</a>
+      <button class="btn-sair" onclick="sair()">Sair</button>
+    </div>
+  </div>
+
+  <!-- Conteúdo -->
+  <div class="conteudo">
+
+    <!-- Senha em atendimento -->
+    <div class="card senha-destaque">
+      <div class="card-header">
+        <span class="card-titulo">Senha em Atendimento</span>
+        <div class="auto-update">
+          <div class="dot-pulse"></div>
+          <span>Actualização automática</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="senha-numero-wrap">
+          <div class="senha-numero vazia" id="senha-numero">—</div>
+          <div class="senha-info">
+            <div class="senha-servico" id="senha-servico-label"></div>
+            <div class="senha-estado estado-vazio" id="senha-estado">
+              <span>Aguardando</span>
+            </div>
+            <div class="senha-balcao" id="senha-balcao-info"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controlos -->
+    <div class="card controlos">
+      <div class="card-header">
+        <span class="card-titulo">Controlos</span>
+      </div>
+      <div class="card-body">
+        <button class="btn-controlo btn-chamar" id="btn-chamar" onclick="chamarProxima()">
+          <span>📢</span> Chamar Próxima
+        </button>
+        <button class="btn-controlo btn-concluir" id="btn-concluir" onclick="concluirAtendimento()" disabled>
+          <span>✓</span> Concluir Atendimento
+        </button>
+        <div class="sep"></div>
+        <button class="btn-controlo btn-actualizar" onclick="carregarDados()">
+          <span>↻</span> Actualizar Lista
+        </button>
+
+        <!-- Métricas rápidas -->
+        <div class="metricas">
+          <div class="metrica">
+            <div class="metrica-valor" id="met-espera">0</div>
+            <div class="metrica-label">Em Espera</div>
+          </div>
+          <div class="metrica">
+            <div class="metrica-valor" id="met-tempo">0</div>
+            <div class="metrica-label">Min. Espera</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fila de espera -->
+    <div class="card fila-espera">
+      <div class="card-header">
+        <span class="card-titulo">Fila de Espera</span>
+        <div class="badge zero" id="badge-fila">0</div>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="tabela-wrap" id="tabela-wrap">
+          <div class="fila-vazia">
+            <div class="fila-vazia-icon">📭</div>
+            <p>A fila está vazia.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- ══════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════ -->
+<script>
+  if (window.location.protocol === 'file:') {
+    const page = window.location.pathname.toLowerCase().includes('gestor') ? 'http://localhost:8080/gestor.html' : 'http://localhost:8080/index.html';
+    window.location.href = page;
+  }
+
+  // ── Configuração ──────────────────────────────────────
+  const API = '/api';
+  async function apiFetch(url, options = {}) {
+    const config = {
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      ...options
+    };
+    return fetch(url, config);
+  }
+  const PIN_CORRECTO = '1234'; // ← alterar para a senha desejada
+  let atendente = '';
+  let balcao = '';
+  let servico = 'CAIXA';
+  let senhaActual = null;
+  let intervalo = null;
+
+  // ── Actualizar postos conforme tipo ─────────────────
+  function actualizarPostos() {
+    const tipo = document.getElementById('input-tipo-posto').value;
+    const select = document.getElementById('input-balcao');
+    select.innerHTML = '';
+    const postos = tipo === 'CAIXA'
+      ? ['Caixa 1', 'Caixa 2', 'Caixa 3', 'Caixa 4']
+      : ['Balcão 1', 'Balcão 2', 'Balcão 3', 'Balcão 4'];
+    postos.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      select.appendChild(opt);
+    });
+  }
+
+  // ── Login ─────────────────────────────────────────────
+  function entrar() {
+    const nome = document.getElementById('input-nome').value.trim();
+    const senha = document.getElementById('input-senha').value;
+
+    if (!nome) { toast('Introduza o seu nome.', 'aviso'); return; }
+    if (!senha) { toast('Introduza a senha de acesso.', 'aviso'); return; }
+    if (senha !== PIN_CORRECTO) {
+      toast('Senha incorrecta. Tente novamente.', 'erro');
+      document.getElementById('input-senha').value = '';
+      document.getElementById('input-senha').focus();
+      return;
+    }
+
+    atendente = nome;
+    balcao = document.getElementById('input-balcao').value;
+    servico = document.getElementById('input-tipo-posto').value;
+    document.getElementById('select-servico').value = servico;
+
+    document.getElementById('topo-atendente').textContent = atendente;
+    document.getElementById('topo-agencia').textContent = 'SmartFila — BCI';
+
+    document.getElementById('tela-login').style.display = 'none';
+    document.getElementById('tela-painel').style.display = 'flex';
+
+    carregarDados();
+    intervalo = setInterval(carregarDados, 8000);
+  }
+
+  // Enter no login
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('tela-login').style.display !== 'none') {
+      entrar();
+    }
+  });
+
+  // ── Sair ──────────────────────────────────────────────
+  function sair() {
+    clearInterval(intervalo);
+    senhaActual = null;
+    document.getElementById('tela-painel').style.display = 'none';
+    document.getElementById('tela-login').style.display = 'flex';
+    document.getElementById('input-nome').value = '';
+    document.getElementById('input-senha').value = '';
+    resetSenhaDestaque();
+  }
+
+  // ── Mudar serviço ─────────────────────────────────────
+  function mudarServico() {
+    servico = document.getElementById('select-servico').value;
+    senhaActual = null;
+    resetSenhaDestaque();
+    carregarDados();
+  }
+
+  // ── Carregar dados da API ─────────────────────────────
+  async function carregarDados() {
+    try {
+      const res = await apiFetch(`${API}/fila?servico=${servico}`);
+      if (!res.ok) throw new Error();
+      const fila = await res.json();
+      renderizarFila(fila);
+    } catch (e) {
+      toast('Erro ao carregar a fila. Verifica o servidor.', 'erro');
+    }
+  }
+
+  // ── Chamar próxima senha ──────────────────────────────
+  async function chamarProxima() {
+    setBtnLoading('btn-chamar', true);
+    try {
+      const res = await fetch(
+        `${API}/fila/chamar?balcao=${encodeURIComponent(balcao)}&servico=${servico}`,
+        { method: 'POST' }
+      );
+
+      if (res.status === 404) {
+        toast('A fila de ' + servico + ' está vazia.', 'aviso');
+        return;
+      }
+      if (!res.ok) throw new Error();
+
+      const senha = await res.json();
+      senhaActual = senha;
+      mostrarSenhaDestaque(senha);
+      document.getElementById('btn-concluir').disabled = false;
+      toast(`Senha ${senha.numeroSenha} chamada para ${balcao}.`);
+      carregarDados();
+    } catch (e) {
+      toast('Erro ao chamar senha.', 'erro');
+    } finally {
+      setBtnLoading('btn-chamar', false);
+    }
+  }
+
+  // ── Concluir atendimento ──────────────────────────────
+  async function concluirAtendimento() {
+    if (!senhaActual) return;
+    setBtnLoading('btn-concluir', true);
+    try {
+      const res = await apiFetch(`${API}/senha/${senhaActual.id}/atendido`, { method: 'PUT' });
+      if (!res.ok) throw new Error();
+
+      toast(`Senha ${senhaActual.numeroSenha} concluída com sucesso!`);
+      senhaActual = null;
+      resetSenhaDestaque();
+      document.getElementById('btn-concluir').disabled = true;
+      carregarDados();
+    } catch (e) {
+      toast('Erro ao concluir atendimento.', 'erro');
+    } finally {
+      setBtnLoading('btn-concluir', false);
+    }
+  }
+
+  // ── Renderizar fila ───────────────────────────────────
+  function renderizarFila(fila) {
+    const wrap = document.getElementById('tabela-wrap');
+    const badge = document.getElementById('badge-fila');
+    const metEspera = document.getElementById('met-espera');
+    const metTempo = document.getElementById('met-tempo');
+
+    badge.textContent = fila.length;
+    badge.className = 'badge' + (fila.length === 0 ? ' zero' : '');
+    metEspera.textContent = fila.length;
+    metTempo.textContent = fila.length > 0 ? fila[fila.length - 1].tempoEstimadoEspera || 0 : 0;
+
+    if (fila.length === 0) {
+      wrap.innerHTML = `
+        <div class="fila-vazia">
+          <div class="fila-vazia-icon">📭</div>
+          <p>A fila está vazia.</p>
+        </div>`;
+      return;
+    }
+
+    let html = `
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Senha</th>
+            <th>Estado</th>
+            <th>Horário</th>
+            <th>Espera</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    fila.forEach((s, i) => {
+      const hora = new Date(s.horarioCriacao).toLocaleTimeString('pt-MZ', { hour: '2-digit', minute: '2-digit' });
+      const proxima = i === 0;
+      html += `
+        <tr class="${proxima ? 'proxima' : ''}">
+          <td style="color:var(--cinza-txt);font-size:12px;">${i + 1}</td>
+          <td class="td-numero">${s.numeroSenha}</td>
+          <td>
+            <span class="chip ${proxima ? 'chip-proxima' : 'chip-espera'}">
+              ${proxima ? '▶ Próxima' : 'Em Espera'}
+            </span>
+          </td>
+          <td class="td-hora">${hora}</td>
+          <td style="color:var(--cinza-txt);font-size:12px;">~${s.tempoEstimadoEspera} min</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+  }
+
+  // ── Mostrar senha em destaque ─────────────────────────
+  function mostrarSenhaDestaque(senha) {
+    const num = document.getElementById('senha-numero');
+    num.textContent = senha.numeroSenha;
+    num.classList.remove('vazia');
+
+    document.getElementById('senha-servico-label').textContent = senha.servico;
+    document.getElementById('senha-estado').innerHTML =
+      `<span class="senha-estado estado-atendendo"><span class="dot-pulse" style="background:var(--verde)"></span> Em Atendimento</span>`;
+    document.getElementById('senha-balcao-info').innerHTML =
+      `Balcão: <strong>${senha.balcao || balcao}</strong>`;
+  }
+
+  function resetSenhaDestaque() {
+    const num = document.getElementById('senha-numero');
+    num.textContent = '—';
+    num.classList.add('vazia');
+    document.getElementById('senha-servico-label').textContent = '';
+    document.getElementById('senha-estado').innerHTML =
+      `<span class="senha-estado estado-vazio">Aguardando</span>`;
+    document.getElementById('senha-balcao-info').textContent = '';
+  }
+
+  // ── Botão loading ──────────────────────────────────────
+  function setBtnLoading(id, loading) {
+    const btn = document.getElementById(id);
+    btn.disabled = loading;
+    if (loading) btn.innerHTML = `<span class="spinner"></span>`;
+    else {
+      if (id === 'btn-chamar') btn.innerHTML = `<span>📢</span> Chamar Próxima`;
+      if (id === 'btn-concluir') btn.innerHTML = `<span>✓</span> Concluir Atendimento`;
+    }
+  }
+
+  // ── Toast ─────────────────────────────────────────────
+  function toast(msg, tipo = 'sucesso') {
+    const wrap = document.getElementById('toasts');
+    const el = document.createElement('div');
+    el.className = 'toast' + (tipo === 'erro' ? ' erro' : tipo === 'aviso' ? ' aviso' : '');
+    el.textContent = msg;
+    wrap.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+</script>
+</body>
+</html>

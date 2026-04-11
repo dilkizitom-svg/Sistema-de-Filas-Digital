@@ -1,0 +1,20 @@
+# Java / Maven (Spring Boot)
+target/
+*.class
+*.jar
+*.war
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+
+# IDEs (Android Studio / VS Code)
+.idea/
+*.iml
+.vscode/
+
+# Binários desnecessários (como o Maven que apareceu na sua imagem)
+apache-maven-*/
