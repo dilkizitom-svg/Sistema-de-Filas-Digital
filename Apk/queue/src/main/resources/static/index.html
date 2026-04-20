@@ -808,24 +808,24 @@
 ══════════════════════════════════════════════════════ -->
 <script>
   if (window.location.protocol === 'file:') {
-    const page = window.location.pathname.toLowerCase().includes('gestor') ? 'http://localhost:8080/gestor.html' : 'http://localhost:8080/index.html';
+    const page = window.location.pathname.toLowerCase().includes('gestor') ? '/gestor.html' : '/index.html';
     window.location.href = page;
   }
 
   // ── Configuração ──────────────────────────────────────
   const API = '/api';
-  async function apiFetch(url, options = {}) {
-    const config = {
-      credentials: 'same-origin',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      ...options
-    };
-    return fetch(url, config);
-  }
-  const PIN_CORRECTO = '1234'; // ← alterar para a senha desejada
+  let authHeader = null;
+async function apiFetch(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    headers: {
+      'ngrok-skip-browser-warning': 'true',
+      'Content-Type': 'application/json',
+      'Authorization': 'Basic ' + btoa('atendente:1234'),
+      ...(options.headers || {})
+    }
+  });
+}
   let atendente = '';
   let balcao = '';
   let servico = 'CAIXA';
@@ -848,16 +848,29 @@
   }
 
   // ── Login ─────────────────────────────────────────────
-  function entrar() {
+  async function entrar() {
     const nome = document.getElementById('input-nome').value.trim();
     const senha = document.getElementById('input-senha').value;
 
     if (!nome) { toast('Introduza o seu nome.', 'aviso'); return; }
     if (!senha) { toast('Introduza a senha de acesso.', 'aviso'); return; }
-    if (senha !== PIN_CORRECTO) {
-      toast('Senha incorrecta. Tente novamente.', 'erro');
-      document.getElementById('input-senha').value = '';
-      document.getElementById('input-senha').focus();
+
+    authHeader = 'Basic ' + btoa(`${nome}:${senha}`);
+    const servicoTentativa = document.getElementById('input-tipo-posto').value;
+
+    try {
+      const resposta = await apiFetch(`${API}/fila?servico=${servicoTentativa}`);
+      if (resposta.status === 401 || resposta.status === 403) {
+        authHeader = null;
+        toast('Credenciais inválidas. Verifique o usuário e a senha.', 'erro');
+        document.getElementById('input-senha').value = '';
+        document.getElementById('input-senha').focus();
+        return;
+      }
+      if (!resposta.ok) throw new Error();
+    } catch (e) {
+      authHeader = null;
+      toast('Erro ao autenticar. Verifique o servidor.', 'erro');
       return;
     }
 

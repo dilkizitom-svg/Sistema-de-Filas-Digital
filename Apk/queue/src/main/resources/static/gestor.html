@@ -325,7 +325,7 @@
     <div class="topo-dir">
       <div class="auto-up"><div class="dot"></div><span>Em tempo real</span></div>
       <div class="topo-gestor">Gestor: <span id="topo-nome">—</span></div>
-      <a href="http://localhost:8080/index.html" class="btn-nav-link">Painel Atendente</a>
+      <a href="./index.html" class="btn-nav-link">Painel Atendente</a>
       <button class="btn-sair" onclick="sair()">Sair</button>
     </div>
   </div>
@@ -547,33 +547,46 @@ if (window.location.protocol === 'file:') {
 
 const API = '/api';
 async function apiFetch(url, options = {}) {
-  const config = {
-    credentials: 'same-origin',
+  return fetch(url, {
+    ...options,
     headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
-    ...options
-  };
-  return fetch(url, config);
+      'ngrok-skip-browser-warning': 'true',
+      'Content-Type': 'application/json',
+      'Authorization': 'Basic ' + btoa('gestor:9999'),
+      ...(options.headers || {})
+    }
+  });
 }
-  const PIN = '9999'; // ← senha do gestor
+  const PIN = '9999'; // senha do gestor
   let gestor = '';
   let intervalo = null;
   let senhaSeleccionada = null;
   let tabActual = 'dashboard';
 
   // ── LOGIN ─────────────────────────────────────────────
-  function entrar() {
+  async function entrar() {
     const nome = document.getElementById('inp-nome').value.trim();
     const senha = document.getElementById('inp-senha').value;
     if (!nome) { toast('Introduza o seu nome.', 'aviso'); return; }
     if (!senha) { toast('Introduza a senha.', 'aviso'); return; }
-    if (senha !== PIN) {
-      toast('Senha incorrecta.', 'erro');
-      document.getElementById('inp-senha').value = '';
+
+    authHeader = 'Basic ' + btoa(`${nome}:${senha}`);
+
+    try {
+      const resposta = await apiFetch(`${API}/metricas/dashboard`);
+      if (resposta.status === 401 || resposta.status === 403) {
+        authHeader = null;
+        toast('Credenciais inválidas. Verifique o usuário e a senha.', 'erro');
+        document.getElementById('inp-senha').value = '';
+        return;
+      }
+      if (!resposta.ok) throw new Error();
+    } catch (e) {
+      authHeader = null;
+      toast('Erro ao autenticar. Verifique o servidor.', 'erro');
       return;
     }
+
     gestor = nome;
     document.getElementById('topo-nome').textContent = gestor;
     document.getElementById('tela-login').style.display = 'none';
@@ -592,6 +605,7 @@ async function apiFetch(url, options = {}) {
   // ── SAIR ──────────────────────────────────────────────
   function sair() {
     clearInterval(intervalo);
+    authHeader = null;
     document.getElementById('tela-painel').style.display = 'none';
     document.getElementById('tela-login').style.display = 'flex';
     document.getElementById('inp-nome').value = '';
@@ -776,7 +790,7 @@ async function apiFetch(url, options = {}) {
     if (!senhaSeleccionada) return;
     const balcao = document.getElementById('modal-balcao').value;
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `${API}/metricas/senha/${senhaSeleccionada}/chamar?balcao=${encodeURIComponent(balcao)}`,
         { method: 'PUT' }
       );

@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/senha.dart';
+import '../services/senha_service.dart';
 
-class SenhaDetalhesScreen extends StatelessWidget {
+class SenhaDetalhesScreen extends StatefulWidget {
   final Senha senha;
   final String nomeCliente;
 
@@ -10,6 +12,50 @@ class SenhaDetalhesScreen extends StatelessWidget {
     required this.senha,
     required this.nomeCliente,
   });
+
+  @override
+  State<SenhaDetalhesScreen> createState() => _SenhaDetalhesScreenState();
+}
+
+class _SenhaDetalhesScreenState extends State<SenhaDetalhesScreen> {
+  late Senha _senhaActual;
+  final SenhaService _service = SenhaService();
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _senhaActual = widget.senha;
+    
+    // Iniciar actualização periódica se a senha não estiver finalizada
+    if (_senhaActual.status == 'ESPERANDO' || _senhaActual.status == 'EM_ATENDIMENTO') {
+      _timer = Timer.periodic(const Duration(seconds: 5), (_) => _actualizarDados());
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _actualizarDados() async {
+    try {
+      final novaSenha = await _service.consultarPosicao(_senhaActual.id);
+      if (mounted) {
+        setState(() {
+          _senhaActual = novaSenha;
+        });
+        
+        // Se a senha foi concluída ou cancelada, parar o timer
+        if (novaSenha.status == 'ATENDIDO' || novaSenha.status == 'CANCELADO') {
+          _timer?.cancel();
+        }
+      }
+    } catch (_) {
+      // Erro na ligação, mantém os dados actuais
+    }
+  }
 
   String _formatarHora(String horario) {
     try {
@@ -51,7 +97,7 @@ class SenhaDetalhesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cor = _corEstado(senha.status);
+    final cor = _corEstado(_senhaActual.status);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
@@ -80,8 +126,6 @@ class SenhaDetalhesScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // ── Código da senha em destaque ───────────────
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(32),
@@ -91,23 +135,11 @@ class SenhaDetalhesScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text(
-                    'SENHA',
-                    style: TextStyle(
-                      color: Color(0xFF888888),
-                      fontSize: 11,
-                      letterSpacing: 3,
-                    ),
-                  ),
+                  const Text('SENHA', style: TextStyle(color: Color(0xFF888888), fontSize: 11, letterSpacing: 3)),
                   const SizedBox(height: 8),
                   Text(
-                    senha.codigo,
-                    style: const TextStyle(
-                      color: Color(0xFFE8001D),
-                      fontSize: 80,
-                      fontWeight: FontWeight.bold,
-                      height: 1,
-                    ),
+                    _senhaActual.codigo,
+                    style: const TextStyle(color: Color(0xFFE8001D), fontSize: 80, fontWeight: FontWeight.bold, height: 1),
                   ),
                   const SizedBox(height: 12),
                   Container(
@@ -117,22 +149,14 @@ class SenhaDetalhesScreen extends StatelessWidget {
                       border: Border.all(color: cor.withOpacity(0.4)),
                     ),
                     child: Text(
-                      _textoEstado(senha.status),
-                      style: TextStyle(
-                        color: cor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
+                      _textoEstado(_senhaActual.status),
+                      style: TextStyle(color: cor, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2),
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // ── Detalhes ──────────────────────────────────
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFF1A1A1A),
@@ -140,55 +164,44 @@ class SenhaDetalhesScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildLinha('Cliente', nomeCliente, Icons.person_outline),
+                  _buildLinha('Cliente', widget.nomeCliente, Icons.person_outline),
                   _buildDivisor(),
-                  _buildLinha('Serviço', senha.servico, Icons.category_outlined),
+                  _buildLinha('Serviço', _senhaActual.servico, Icons.category_outlined),
                   _buildDivisor(),
-                  _buildLinha('Data', _formatarData(senha.horarioCriacao), Icons.calendar_today_outlined),
+                  _buildLinha('Data', _formatarData(_senhaActual.horarioCriacao), Icons.calendar_today_outlined),
                   _buildDivisor(),
-                  _buildLinha('Hora de emissão', _formatarHora(senha.horarioCriacao), Icons.access_time),
+                  _buildLinha('Hora de emissão', _formatarHora(_senhaActual.horarioCriacao), Icons.access_time),
                   _buildDivisor(),
                   _buildLinha('Posição na fila',
-                    senha.status == 'ESPERANDO'
-                        ? '${senha.posicaoFila}º lugar'
-                        : '—',
+                    _senhaActual.status == 'ESPERANDO' ? '${_senhaActual.posicaoFila}º lugar' : '—',
                     Icons.people_outline,
                   ),
                   _buildDivisor(),
                   _buildLinha('Tempo estimado',
-                    senha.status == 'ESPERANDO'
-                        ? '~${senha.tempoEstimadoEspera} minutos'
-                        : '—',
+                    _senhaActual.status == 'ESPERANDO' ? '~${_senhaActual.tempoEstimadoEspera} minutos' : '—',
                     Icons.timer_outlined,
                   ),
-                  if (senha.balcao != null) ...[
+                  if (_senhaActual.balcao != null) ...[
                     _buildDivisor(),
-                    _buildLinha('Balcão', senha.balcao!, Icons.desk_outlined),
+                    _buildLinha('Balcão', _senhaActual.balcao!, Icons.desk_outlined),
                   ],
                 ],
               ),
             ),
-
             const SizedBox(height: 32),
-
-            // ── Botão acompanhar fila ─────────────────────
-            if (senha.status == 'ESPERANDO' || senha.status == 'EM_ATENDIMENTO')
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE8001D),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                  ),
-                  child: const Text(
-                    'ACOMPANHAR FILA',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 2),
-                  ),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE8001D),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                 ),
+                child: const Text('VOLTAR', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 2)),
               ),
+            ),
           ],
         ),
       ),
@@ -204,10 +217,7 @@ class SenhaDetalhesScreen extends StatelessWidget {
           const SizedBox(width: 14),
           Text(label, style: const TextStyle(color: Color(0xFF888888), fontSize: 13)),
           const Spacer(),
-          Text(
-            valor,
-            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-          ),
+          Text(valor, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
         ],
       ),
     );
