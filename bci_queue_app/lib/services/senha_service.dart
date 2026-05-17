@@ -3,7 +3,7 @@ import '../models/senha.dart';
 import 'dart:convert';
 
 class SenhaService {
-  static const String baseUrl = 'https://nonechoic-milena-habitually.ngrok-free.dev/api';
+  static const String baseUrl =  'https://nonechoic-milena-habitually.ngrok-free.dev/api';
 
   final Dio _dio = Dio(
     BaseOptions(
@@ -11,7 +11,6 @@ class SenhaService {
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {
-        'ngrok-skip-browser-warning': 'true',
         'Authorization': 'Basic ${base64Encode(utf8.encode('atendente:1234'))}',
       },
     ),
